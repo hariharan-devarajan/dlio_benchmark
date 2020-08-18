@@ -82,6 +82,7 @@ Improvements and requests for new features are more than welcome! Do not hesitat
 ## License
 MIT License
 
-
+##Author
+Hariharan Devarajan
 
     
