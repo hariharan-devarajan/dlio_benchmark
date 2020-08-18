@@ -83,6 +83,6 @@ Improvements and requests for new features are more than welcome! Do not hesitat
 MIT License
 
 ##Author
-Hariharan Devarajan
+Hariharan Devarajan (2020)
 
     
