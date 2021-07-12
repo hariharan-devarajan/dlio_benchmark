@@ -1,6 +1,7 @@
 from src.common.enumerations import FormatType
 from src.common.error_code import ErrorCodes
 from src.reader.csv_reader import CSVReader
+from src.reader.data_loader_reader import DataLoaderReader
 from src.reader.hdf5_format import HDF5Reader
 from src.reader.hdf5_stimulate import HDF5StimulateReader
 from src.reader.npz_reader import NPZReader
@@ -23,5 +24,7 @@ class ReaderFactory(object):
             return CSVReader()
         elif type == FormatType.NPZ:
             return NPZReader()
+        elif type == FormatType.DATA_LOADER:
+            return DataLoaderReader()
         else:
             raise Exception(str(ErrorCodes.EC1001))

@@ -10,37 +10,24 @@
  You should have received a copy of the GNU General Public License along with this program.
  If not, see <http://www.gnu.org/licenses/>.
 """
-from time import sleep,time
 
 from src.common.enumerations import Profiler
 from src.data_generator.generator_factory import GeneratorFactory
-from src.reader.reader_factory import ReaderFactory
+from src.framwork.framework_factory import FrameworkFactory
 from src.profiler.profiler_factory import ProfilerFactory
 from src.utils.argument_parser import ArgumentParser
-import tensorflow as tf
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
-import horovod.tensorflow as hvd
+
 import math
-import os
 import shutil
-hvd.init()
-
-
-def barrier():
-    """
-    Barrier implementation using horovod's all-reduce
-    """
-    const = tf.constant(1)
-    reduced = hvd.allreduce(const)
-
-def model(epoch,step, time):
-    sleep(time)
+from time import time
+import os
 
 
 class DLIOBenchmark(object):
     """
     The Benchmark represents the I/O behavior of deep learning applications.
     """
+
     def __init__(self):
         """
         This initializes the DLIO benchmark. Intialization includes:
@@ -52,8 +39,11 @@ class DLIOBenchmark(object):
         </ul>
         """
         self.arg_parser = ArgumentParser.get_instance()
+        self.framework = FrameworkFactory().get_framework(self.arg_parser.args.framework,
+                                                          self.arg_parser.args.profiling, self.arg_parser.args.format)
+        self.args.my_rank = self.framework.rank()
+        self.args.comm_size = self.framework.size()
         self.darshan = None
-        self.tensorboard = None
         self.data_generator = None
         self.my_rank = self.arg_parser.args.my_rank
         self.comm_size = self.arg_parser.args.comm_size
@@ -61,12 +51,11 @@ class DLIOBenchmark(object):
         self.num_samples = self.arg_parser.args.num_samples
         self.batch_size = self.arg_parser.args.batch_size
         self.computation_time = self.arg_parser.args.computation_time
+
         if self.arg_parser.args.profiling:
             self.darshan = ProfilerFactory().get_profiler(Profiler.DARSHAN)
-            self.tensorboard = ProfilerFactory().get_profiler(Profiler.TENSORBOARD)
         if self.arg_parser.args.generate_data:
             self.data_generator = GeneratorFactory.get_generator(self.arg_parser.args.format)
-        self.reader_handler = ReaderFactory.get_format(self.arg_parser.args.format)
 
     def initialize(self):
         """
@@ -76,64 +65,30 @@ class DLIOBenchmark(object):
         """
         if self.arg_parser.args.debug and self.arg_parser.args.my_rank == 0:
             input("Press enter to start\n")
-        barrier()
+        self.framework.barrier()
         if self.arg_parser.args.generate_data:
             self.data_generator.generate()
             print("Generation done")
         if self.arg_parser.args.profiling:
             self.darshan.start()
-            self.tensorboard.start()
-            barrier()
+            self.framework.start_framework_profiler()
+            self.framework.barrier()
             if self.arg_parser.args.my_rank == 0:
                 print("profiling started")
-        barrier()
+        self.framework.barrier()
 
-    def _checkpoint(self, step_number):
-        """
-        Performs Checkpointing for a specific step number. It writes different file of different sizes.
-        """
-        if not os.path.exists(self.arg_parser.args.output_folder):
-            os.makedirs(self.arg_parser.args.output_folder)
-        model_file = os.path.join(self.arg_parser.args.output_folder,
-                                  "model_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
-        bak_file1 = os.path.join(self.arg_parser.args.output_folder,
-                                 "file1_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
-        bak_file2 = os.path.join(self.arg_parser.args.output_folder,
-                                 "file2_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
-        meta_file = os.path.join(self.arg_parser.args.output_folder,
-                                 "meta_{}_{}.bin".format(step_number, self.arg_parser.args.my_rank))
-        f = open(model_file, "w")
-        string_val = "x" * (1024 * 1024 * 4)
-        f.write(string_val)
-        f.close()
-        f = open(bak_file1, "w")
-        string_val = "x" * (1024 * 64)
-        f.write(string_val)
-        f.close()
-        f = open(bak_file2, "w")
-        string_val = "x" * (1024 * 4)
-        f.write(string_val)
-        f.close()
-        f = open(meta_file, "w")
-        string_val = "x" * (1024)
-        f.write(string_val)
-        f.close()
-        pass
-
-
-
-    def _train(self,epoch_number):
+    def _train(self, epoch_number):
         """
         Training loop for reading the dataset and performing training computations.
         :return: returns total steps.
         """
         step = 1
         total = math.ceil(self.num_samples * self.num_files / self.batch_size / self.comm_size)
-        for element in self.reader_handler.next():
+        for element in self.framework.get_reader.next():
             if self.computation_time > 0:
-                tf.function(model)(epoch_number, step, self.computation_time)
+                self.framework.compute(epoch_number, step, self.computation_time)
             if self.arg_parser.args.checkpoint and step % self.arg_parser.args.steps_checkpoint == 0:
-                self._checkpoint(step)
+                self.framework.checkpoint(step)
             step += 1
             if step > total:
                 return step - 1
@@ -147,33 +102,36 @@ class DLIOBenchmark(object):
         if not self.arg_parser.args.generate_only:
             for epoch_number in range(0, self.arg_parser.args.epochs):
                 start_time = time()
-                self.reader_handler.read(epoch_number)
-                barrier()
+                self.framework.get_reader.read(epoch_number)
+                self.framework.barrier()
                 if self.arg_parser.args.my_rank == 0:
-                    print("Datasets loaded in {} epochs for rank {} in {} seconds".format(epoch_number + 1, self.arg_parser.args.my_rank,(time() - start_time)))
+                    print("Datasets loaded in {} epochs for rank {} in {} seconds".format(epoch_number + 1,
+                                                                                          self.arg_parser.args.my_rank,
+                                                                                          (time() - start_time)))
                 start_time = time()
                 steps = self._train(epoch_number)
-                barrier()
+                self.framework.barrier()
                 if self.arg_parser.args.my_rank == 0:
                     print("Finished {} steps in {} epochs for rank {}  in {} seconds".format(steps, epoch_number + 1,
-                                                                          self.arg_parser.args.my_rank,(time() - start_time)))
-                self.reader_handler.finalize()
+                                                                                             self.arg_parser.args.my_rank,
+                                                                                             (time() - start_time)))
+                self.framework.get_reader.finalize()
 
     def finalize(self):
         """
         It finalizes the dataset once the training epoch is completed.
         """
         print("Finalizing for rank {}".format(self.arg_parser.args.my_rank))
-        barrier()
+        self.framework.barrier()
         if not self.arg_parser.args.generate_only:
             if self.arg_parser.args.profiling:
                 self.darshan.stop()
-                self.tensorboard.stop()
-                barrier()
+                self.framework.stop_framework_profiler.stop()
+                self.framework.barrier()
                 if self.arg_parser.args.my_rank == 0:
                     print("profiling stopped")
             if not self.arg_parser.args.keep_files:
-                barrier()
+                self.framework.barrier()
                 if self.arg_parser.args.my_rank == 0:
                     if os.path.exists(self.arg_parser.args.data_folder):
                         shutil.rmtree(self.arg_parser.args.data_folder)
@@ -190,5 +148,4 @@ if __name__ == '__main__':
     benchmark.initialize()
     benchmark.run()
     benchmark.finalize()
-    barrier()
     exit(0)

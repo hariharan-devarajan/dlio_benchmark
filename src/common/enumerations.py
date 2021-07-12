@@ -16,6 +16,13 @@ from enum import Enum
 """
 Different Computation Type for training loop.
 """
+class FrameworkType(Enum):
+    TENSORFLOW = 'tensorflow'
+    PYTORCH = 'pytorch'
+
+"""
+Different Computation Type for training loop.
+"""
 class ComputationType(Enum):
     NONE = 'none'
     SYNC = 'sync'
@@ -30,6 +37,7 @@ class FormatType(Enum):
     CSV = 'csv'
     NPZ = 'npz'
     HDF5_OPT = 'hdf5_opt'
+    DATA_LOADER = 'data_loader'
 
     def __str__(self):
         return self.value
