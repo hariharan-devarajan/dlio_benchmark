@@ -59,6 +59,9 @@ class TFFramework(Framework):
         if self.profiling:
             self.tensorboard.stop()
 
+    def trace_object(self, string, step, r):
+        return tf.profiler.experimental.Trace(string, step_num=step, _r=r)
+
     def checkpoint(self, step_number):
         """
                 Performs Checkpointing for a specific step number. It writes different file of different sizes.

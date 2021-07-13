@@ -3,6 +3,17 @@ from abc import ABC, abstractmethod
 from time import sleep
 
 
+class DummyTraceObject(object):
+    def __init__(self, string, step, r):
+        pass
+
+    def __enter__(self):
+        return 1
+
+    def __exit__(self, string, step, r):
+        pass
+
+
 class Framework(ABC):
     def __init__(self):
         pass
@@ -33,11 +44,15 @@ class Framework(ABC):
         pass
 
     @abstractmethod
+    def trace_object(self, string, step, r):
+        pass
+
+    @abstractmethod
     def checkpoint(self, step_number):
         pass
 
-    def model(epoch, step, time):
-        sleep(time)
+    def model(epoch, epoch_number, step, computation_time):
+        sleep(computation_time)
 
     @abstractmethod
     def compute(self, epoch_number, step, computation_time):

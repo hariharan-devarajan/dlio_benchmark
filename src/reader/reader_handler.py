@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from src.common.enumerations import Shuffle, FileAccess
+from src.framwork.framework_factory import FrameworkFactory
 from src.utils.argument_parser import ArgumentParser
 
 import os
@@ -31,6 +32,8 @@ class FormatReader(ABC):
         self._dimension = int(math.sqrt(self.record_size / 8))
         self._dataset = None
         self._local_file_list = None
+        self.framework = FrameworkFactory().get_framework(self._arg_parser.args.framework,
+                                                          self._arg_parser.args.profiling)
 
     @abstractmethod
     def read(self, epoch_number):

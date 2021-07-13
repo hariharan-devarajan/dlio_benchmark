@@ -19,6 +19,8 @@ import tensorflow as tf
 from src.utils.utility import progress
 
 
+
+
 class TFReader(FormatReader):
     """
     Reader for TFRecord files.

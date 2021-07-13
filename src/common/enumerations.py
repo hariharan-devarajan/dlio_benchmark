@@ -20,6 +20,9 @@ class FrameworkType(Enum):
     TENSORFLOW = 'tensorflow'
     PYTORCH = 'pytorch'
 
+    def __str__(self):
+        return self.value
+
 """
 Different Computation Type for training loop.
 """
