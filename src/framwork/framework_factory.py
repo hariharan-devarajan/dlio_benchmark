@@ -9,10 +9,10 @@ class FrameworkFactory(object):
         pass
 
     @staticmethod
-    def get_framework(framework_type, profiling, format_type):
+    def get_framework(framework_type, profiling):
         if framework_type == FrameworkType.TENSORFLOW:
-            return TFFramework.get_instance(profiling, format_type)
+            return TFFramework.get_instance(profiling)
         elif framework_type == FrameworkType.PYTORCH:
-            return TorchFramework.get_instance(profiling, format_type)
+            return TorchFramework.get_instance(profiling)
         else:
             raise Exception(str(ErrorCodes.EC1001))

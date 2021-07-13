@@ -40,9 +40,10 @@ class DLIOBenchmark(object):
         """
         self.arg_parser = ArgumentParser.get_instance()
         self.framework = FrameworkFactory().get_framework(self.arg_parser.args.framework,
-                                                          self.arg_parser.args.profiling, self.arg_parser.args.format)
-        self.args.my_rank = self.framework.rank()
-        self.args.comm_size = self.framework.size()
+                                                          self.arg_parser.args.profiling)
+        self.arg_parser.args.my_rank = self.framework.rank()
+        self.arg_parser.args.comm_size = self.framework.size()
+        self.framework.init_reader(self.arg_parser.args.format)
         self.darshan = None
         self.data_generator = None
         self.my_rank = self.arg_parser.args.my_rank
@@ -84,7 +85,7 @@ class DLIOBenchmark(object):
         """
         step = 1
         total = math.ceil(self.num_samples * self.num_files / self.batch_size / self.comm_size)
-        for element in self.framework.get_reader.next():
+        for element in self.framework.get_reader().next():
             if self.computation_time > 0:
                 self.framework.compute(epoch_number, step, self.computation_time)
             if self.arg_parser.args.checkpoint and step % self.arg_parser.args.steps_checkpoint == 0:
@@ -102,7 +103,7 @@ class DLIOBenchmark(object):
         if not self.arg_parser.args.generate_only:
             for epoch_number in range(0, self.arg_parser.args.epochs):
                 start_time = time()
-                self.framework.get_reader.read(epoch_number)
+                self.framework.get_reader().read(epoch_number)
                 self.framework.barrier()
                 if self.arg_parser.args.my_rank == 0:
                     print("Datasets loaded in {} epochs for rank {} in {} seconds".format(epoch_number + 1,
@@ -115,7 +116,7 @@ class DLIOBenchmark(object):
                     print("Finished {} steps in {} epochs for rank {}  in {} seconds".format(steps, epoch_number + 1,
                                                                                              self.arg_parser.args.my_rank,
                                                                                              (time() - start_time)))
-                self.framework.get_reader.finalize()
+                self.framework.get_reader().finalize()
 
     def finalize(self):
         """

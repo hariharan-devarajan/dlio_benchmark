@@ -1,17 +1,26 @@
+from src.common.enumerations import FormatType
+from src.common.error_code import ErrorCodes
 from src.framwork.framework import Framework
+from src.reader.reader_factory import ReaderFactory
 
 
 class TorchFramework(Framework):
     __instance = None
 
-    def __init__(self, profiling, format_type):
-        pass
+    def __init__(self, profiling):
+        self.reader_handler = None
+
+    def init_reader(self, format_type):
+        if format_type == FormatType.TFRECORD:
+            raise Exception(str(ErrorCodes.EC1001))
+        self.reader_handler = ReaderFactory.get_format(format_type)
+
 
     @staticmethod
-    def get_instance(profiling, format_type):
+    def get_instance(profiling):
         """ Static access method. """
         if TorchFramework.__instance is None:
-            TorchFramework(profiling, format_type)
+            TorchFramework.__instance = TorchFramework(profiling)
         return TorchFramework.__instance
 
     def barrier(self):
