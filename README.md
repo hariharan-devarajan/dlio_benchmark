@@ -1,3 +1,5 @@
+# DLIO has been migrated to [https://github.com/argonne-lcf/dlio_benchmark](https://github.com/argonne-lcf/dlio_benchmark). Please clone repo from there.
+
 # DLIO Benchmark
 This is repository for a I/O benchmark which represents Scientific Deep Learning Workloads. DLIO benchmark is aimed at emulating the behavior of scientific deep learning applications, as described in the previous section. The benchmark is delivered as an executable that can be configured for various I/O patterns. It uses a modular design to incorporate more data formats, datasets, and configuration parameters. It emulates modern scientific deep learning applications using Benchmark Runner, Data Generator, Format Handler, and I/O Profiler modules. These modules utilize state-of-the-art design patterns to build a transparent and extensible framework. The DLIO benchmark has been designed with the following goals in mind.
 
